@@ -66,8 +66,9 @@ def preserve_caps(word, newWord):
         newWord = newWord.capitalize()
     return newWord
 
-def change_tense(text, to_tense, nlp=nlp):
-    """Change the tense of text.
+
+def change_tense(text, to_tense, nlp=nlp, debug=0):
+    """Change the tense of
 
     Args:
         text (str): text to change.
@@ -86,13 +87,29 @@ def change_tense(text, to_tense, nlp=nlp):
     out = list()
     out.append(doc[0].text)
     words = []
+    quoted = False
     for word in doc:
+        if debug > 0:
+            print("\t'" + word.text_with_ws + "', TEXT = '" + word.norm_, "' + TAG = " + word.tag_ + ", TYPE = " + word.ent_type_)
+
+        if word.tag_ == "``":
+            # The tokenizer often thinks a closing straight-quote is opening:
+            if quoted and word.text_with_ws == '" ':
+                quoted = False
+            else:
+                quoted = True
+        elif word.tag_ == "''":
+            quoted = False
+
+
         words.append(word)
         if len(words) == 1:
             continue
-        if (words[-2].text == 'will' and words[-2].tag_ == 'MD' and words[-1].tag_ == 'VB') or \
+
+        if not quoted and (\
+                (words[-2].text == 'will' and words[-2].tag_ == 'MD' and words[-1].tag_ == 'VB') or \
                         words[-1].tag_ in ('VBD', 'VBP', 'VBZ', 'VBN') or \
-                (not words[-2].text in ('to', 'not') and words[-1].tag_ == 'VB'):
+                (not words[-2].text in ('to', 'not') and words[-1].tag_ == 'VB')):
 
             if words[-2].text in ('were', 'am', 'is', 'are', 'was') or\
                     (words[-2].text == 'be' and len(words) > 2 and words[-3].text == 'will'):

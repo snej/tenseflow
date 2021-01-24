@@ -1,0 +1,58 @@
+#! /usr/bin/env python3
+
+import argparse
+
+parser = argparse.ArgumentParser(
+                    description='Converts English text to past or present tense, and/or from first to third person.')
+parser.add_argument('--past', dest='tense', action='store_const', const='past',
+                    help='Convert to past tense')
+parser.add_argument('--present', dest='tense', action='store_const', const='present',
+                    help='Convert to present tense')
+parser.add_argument('--he', '--him', dest='person', action='store_const', const='he',
+                    help='Convert first-person to third-person male')
+parser.add_argument('--she', '--her', dest='person', action='store_const', const='she',
+                    help='Convert first-person to third-person female')
+parser.add_argument('--they', '--them', dest='person', action='store_const', const='they',
+                    help='Convert first-person to third-person non-gendered ("they", "them")')
+parser.add_argument('--straight', dest='straight', action='store_true', default=False,
+                    help="Don't convert 'straight' apostrophes to ‘curly’ ones")
+parser.add_argument('--text', dest='text', action='store',
+                    help="Next argument is text to convert. Processed before any filenames.")
+parser.add_argument('--debug', dest='debug', action='store_const', default=0, const=2,
+                    help="Logs information about every input word.")
+parser.add_argument('files', metavar="FILENAMES", type=str, nargs='*',
+					help='Text file(s) to read; if none are given, reads stdin')
+args = parser.parse_args()
+
+if not args.tense and not args.person:
+    parser.print_help()
+    exit(0)
+
+
+import fileinput
+import tenseflow
+
+
+def process(line):
+    line = line.rstrip()
+    if not args.straight:
+        line = line.replace(u"’", u"'")     # Unicode apostrophes in contractions confuse tenseflow
+
+    if args.tense:
+        line = tenseflow.change_tense(line, args.tense, debug=args.debug)
+    if args.person:
+        line = tenseflow.change_to_third(line, args.person, debug=args.debug)
+
+    if not args.straight:
+        line = line.replace(u"'", u"’").replace(u" ’", u"’")
+    print(line)
+
+
+if args.text != None:
+    process(args.text)
+    print("")
+    if len(args.files) == 0:
+        exit(0)
+
+for line in fileinput.FileInput(args.files):
+    process(line)
